@@ -1,7 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'pages/loading_page.dart';
 import 'services/audio_service.dart';
+import 'services/simple_user_service.dart';
+
 
 // Custom button widget with shine effect
 class CustomButton extends StatefulWidget {
@@ -172,8 +177,20 @@ class _CustomButtonState extends State<CustomButton>
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize audio service
-  await AudioService().initialize();
+  // Initialize SQLite for desktop platforms (excluding web)
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+  
+  try {
+    // Initialize services in proper order
+    await AudioService().initialize();
+    await SimpleUserService().initialize();
+  } catch (e) {
+    print('Error initializing services: $e');
+    // Continue with app startup even if services fail
+  }
   
   runApp(const AurumApp());
 }

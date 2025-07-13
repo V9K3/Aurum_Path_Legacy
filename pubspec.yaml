@@ -37,6 +37,12 @@ dependencies:
   
   # Audio playback
   audioplayers: ^5.2.1
+  
+  # Database
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.2
+  path: ^1.8.3
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:

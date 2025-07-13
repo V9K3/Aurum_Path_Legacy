@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'game_page.dart';
+import 'settings_page.dart';
 import '../main.dart' show CustomButton;
 import '../services/audio_service.dart';
 
@@ -124,10 +125,14 @@ class _MainMenuPageState extends State<MainMenuPage>
   }
 
   void _handleSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings feature coming soon!'),
-        behavior: SnackBarBehavior.floating,
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const SettingsPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 800),
       ),
     );
   }

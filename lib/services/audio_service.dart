@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'simple_user_service.dart';
 
 class AudioService {
   static final AudioService _instance = AudioService._internal();
@@ -16,6 +17,9 @@ class AudioService {
     
     _backgroundPlayer = AudioPlayer();
     _isInitialized = true;
+    
+    // Set default volume initially
+    await setVolume(0.6);
   }
 
   // Start playing background music
@@ -36,8 +40,8 @@ class AudioService {
     try {
       print('Starting background music...');
       
-      // Set volume to maximum
-      await _backgroundPlayer?.setVolume(1.0);
+      // Set volume from user settings before playing
+      await _updateVolumeFromSettings();
       
       // Play the music
       await _backgroundPlayer?.play(AssetSource('music/background/Main_Pg.mp3'));
@@ -66,6 +70,9 @@ class AudioService {
       // Try to start music if it was waiting
       if (!_isPlaying) {
         playBackgroundMusic();
+      } else {
+        // If music is already playing, update volume from settings
+        _updateVolumeFromSettings();
       }
     }
   }
@@ -92,6 +99,9 @@ class AudioService {
     
     await _backgroundPlayer?.resume();
     _isPlaying = true;
+    
+    // Update volume from settings when resuming
+    await _updateVolumeFromSettings();
   }
 
   // Check if music is playing
@@ -101,7 +111,7 @@ class AudioService {
   Future<bool> isActuallyPlaying() async {
     if (!_isInitialized || _backgroundPlayer == null) return false;
     try {
-      final state = await _backgroundPlayer!.state;
+      final state = _backgroundPlayer!.state;
       return state == PlayerState.playing;
     } catch (e) {
       print('Error checking player state: $e');
@@ -115,6 +125,22 @@ class AudioService {
     await _backgroundPlayer?.setVolume(volume);
   }
   
+  // Update volume from user settings
+  Future<void> _updateVolumeFromSettings() async {
+    try {
+      final userService = SimpleUserService();
+      if (userService.isInitialized) {
+        final musicVolume = userService.getSettingValue('musicVolume') ?? 0.6;
+        await setVolume(musicVolume);
+        print('Volume set to: ${(musicVolume * 100).round()}%');
+      }
+    } catch (e) {
+      print('Error updating volume from settings: $e');
+      // Set default volume if user service fails
+      await setVolume(0.6);
+    }
+  }
+  
   // Debug info
   Future<void> printDebugInfo() async {
     print('AudioService Debug Info:');
@@ -124,7 +150,7 @@ class AudioService {
     
     if (_isInitialized && _backgroundPlayer != null) {
       try {
-        final state = await _backgroundPlayer!.state;
+        final state = _backgroundPlayer!.state;
         print('- Player State: $state');
       } catch (e) {
         print('- Player State: Error getting state - $e');
