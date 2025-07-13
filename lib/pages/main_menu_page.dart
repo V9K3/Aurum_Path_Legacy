@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'game_page.dart';
 import '../main.dart' show CustomButton;
+import '../services/audio_service.dart';
 
 class MainMenuPage extends StatefulWidget {
   const MainMenuPage({super.key});
@@ -55,6 +56,21 @@ class _MainMenuPageState extends State<MainMenuPage>
       parent: _slideController,
       curve: Curves.easeOutCubic,
     ));
+
+    // Ensure background music continues playing
+    print('Main menu: Checking audio state...');
+    AudioService().printDebugInfo().then((_) {
+      if (!AudioService().isPlaying) {
+        print('Main menu: Starting background music...');
+        AudioService().playBackgroundMusic().then((_) {
+          print('Main menu: Background music started');
+        }).catchError((error) {
+          print('Main menu: Error starting background music: $error');
+        });
+      } else {
+        print('Main menu: Background music is already playing');
+      }
+    });
 
     // Start animations with delay
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -135,174 +151,180 @@ class _MainMenuPageState extends State<MainMenuPage>
     final isMobile = screenSize.width < 600;
     final isSmallMobile = screenSize.width < 400;
     
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/backgrounds/Login_BG.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
-            ),
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SizedBox(
-                      height: constraints.maxHeight,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              child: Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: isMobile ? 20.0 : 32.0,
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SizedBox(height: isMobile ? 20 : 40),
-                                      // App Logo and Title
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          // Currency Icon
-                                          Container(
-                                            width: isMobile ? 60 : 80,
-                                            height: isMobile ? 60 : 80,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFFFFF).withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(isMobile ? 30 : 40),
-                                              border: Border.all(
-                                                color: const Color(0xFFFFD700),
-                                                width: isMobile ? 2 : 2,
-                                              ),
-                                            ),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(isMobile ? 28 : 38),
-                                              child: Image.asset(
-                                                'assets/images/icons/currency.png',
-                                                width: isMobile ? 40 : 60,
-                                                height: isMobile ? 40 : 60,
-                                                fit: BoxFit.contain,
-                                              ),
-                                            ),
-                                          ),
-                                          SizedBox(width: isMobile ? 12 : 16),
-                                          
-                                          // Aurum Path Text
-                                          Text(
-                                            'Aurum Path',
-                                            style: TextStyle(
-                                              fontSize: isMobile ? 30 : 40,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFFFFD700),
-                                              letterSpacing: isMobile ? .8 : 1.2,
-                                              shadows: const [
-                                                Shadow(
-                                                  offset: Offset(2, 2),
-                                                  blurRadius: 6,
-                                                  color: Colors.black54,
-                                                ),
-                                                Shadow(
-                                                  offset: Offset(1, 1),
-                                                  blurRadius: 3,
-                                                  color: Colors.black38,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      SizedBox(height: isMobile ? 8 : 12),
-                                      Text(
-                                        'Legacy',
-                                        style: TextStyle(
-                                          fontSize: isMobile ? (isSmallMobile ? 35 : 35) : 45,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFFFFD700),
-                                          letterSpacing: isMobile ? 1 : 1.5,
-                                          shadows: const [
-                                            Shadow(
-                                              offset: Offset(2, 2),
-                                              blurRadius: 6,
-                                              color: Colors.black54,
-                                            ),
-                                            Shadow(
-                                              offset: Offset(1, 1),
-                                              blurRadius: 3,
-                                              color: Colors.black38,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      SizedBox(height: isMobile ? 6 : 8),
-                                      SizedBox(height: isMobile ? 60 : 60),
-                                      // Menu Buttons
-                                      CustomButton(
-                                        text: 'New Game',
-                                        icon: Icons.play_arrow,
-                                        onPressed: _handleNewGame,
-                                        isMobile: isMobile,
-                                      ),
-                                      SizedBox(height: isMobile ? 12 : 16),
-                                      CustomButton(
-                                        text: 'Load',
-                                        icon: Icons.folder_open,
-                                        onPressed: _handleLoadGame,
-                                        isMobile: isMobile,
-                                      ),
-                                      SizedBox(height: isMobile ? 12 : 16),
-                                      CustomButton(
-                                        text: 'Tutorial',
-                                        icon: Icons.school,
-                                        onPressed: _handleTutorial,
-                                        isMobile: isMobile,
-                                      ),
-                                      SizedBox(height: isMobile ? 12 : 16),
-                                      CustomButton(
-                                        text: 'Settings',
-                                        icon: Icons.settings,
-                                        onPressed: _handleSettings,
-                                        isMobile: isMobile,
-                                      ),
-                                      // Removed bottom SizedBox
-                                    ],
-                                  ),
+    return GestureDetector(
+      onTap: () {
+        // Mark user interaction for audio
+        AudioService().markUserInteracted();
+      },
+      child: Scaffold(
+        body: isMobile
+            ? Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/backgrounds/MainBG.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: SafeArea(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                    ),
+                    child: _buildContent(isMobile, isSmallMobile),
+                  ),
+                ),
+              )
+            : Container(
+                width: double.infinity,
+                height: double.infinity,
+                color: const Color(0xFFF1F5D8),
+                child: Center(
+                  child: Container(
+                    width: 600, // Mobile width for consistent image size
+                    height: double.infinity,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/backgrounds/MainBG.png'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                      child: _buildContent(isMobile, isSmallMobile),
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildContent(bool isMobile, bool isSmallMobile) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isMobile ? 20.0 : 32.0,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(height: isMobile ? 20 : 40),
+                        // App Logo and Title
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Currency Icon
+                            Container(
+                              width: isMobile ? 60 : 80,
+                              height: isMobile ? 60 : 80,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFFFFF).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(isMobile ? 30 : 40),
+                                border: Border.all(
+                                  color: const Color(0xFFFFD700),
+                                  width: isMobile ? 2 : 2,
+                                ),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(isMobile ? 28 : 38),
+                                child: Image.asset(
+                                  'assets/images/icons/currency.png',
+                                  width: isMobile ? 40 : 60,
+                                  height: isMobile ? 40 : 60,
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
-                          ),
-                          // Footer
-                          Padding(
-                            padding: EdgeInsets.only(top: isMobile ? 16 : 32, bottom: isMobile ? 8 : 16),
-                            child: Text(
-                              '© 2024 Aurum Path - Learn Business & Economics Through Play',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: isMobile ? 11 : 13,
-                                fontWeight: FontWeight.w400,
-                                letterSpacing: 0.2,
+                            SizedBox(width: isMobile ? 12 : 16),
+                          ],
+                        ),
+                        SizedBox(height: isMobile ? 8 : 12),
+                        Text(
+                          'Aurum Path : Legacy',
+                          style: TextStyle(
+                            fontSize: isMobile ? (isSmallMobile ? 25 : 30) : 40,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFFD700),
+                            letterSpacing: isMobile ? .7 : 1,
+                            shadows: const [
+                              Shadow(
+                                offset: Offset(2, 2),
+                                blurRadius: 6,
+                                color: const Color(0xFF332D56),
                               ),
-                              textAlign: TextAlign.center,
-                            ),
+                              Shadow(
+                                offset: Offset(1, 1),
+                                blurRadius: 3,
+                                color: const Color(0xFF332D56),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
+                        ),
+                        SizedBox(height: isMobile ? 6 : 8),
+                        SizedBox(height: isMobile ? 60 : 60),
+                        // Menu Buttons
+                        CustomButton(
+                          text: 'New Game',
+                          icon: Icons.play_arrow,
+                          onPressed: _handleNewGame,
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: isMobile ? 12 : 16),
+                        CustomButton(
+                          text: 'Load',
+                          icon: Icons.folder_open,
+                          onPressed: _handleLoadGame,
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: isMobile ? 12 : 16),
+                        CustomButton(
+                          text: 'Tutorial',
+                          icon: Icons.school,
+                          onPressed: _handleTutorial,
+                          isMobile: isMobile,
+                        ),
+                        SizedBox(height: isMobile ? 12 : 16),
+                        CustomButton(
+                          text: 'Settings',
+                          icon: Icons.settings,
+                          onPressed: _handleSettings,
+                          isMobile: isMobile,
+                        ),
+                        // Removed bottom SizedBox
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            // Footer
+            Padding(
+              padding: EdgeInsets.only(top: isMobile ? 16 : 32, bottom: isMobile ? 8 : 16),
+              child: Text(
+                '© 2024 Aurum Path - Learn Business & Economics Through Play',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: isMobile ? 11 : 13,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 0.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
         ),
       ),
     );

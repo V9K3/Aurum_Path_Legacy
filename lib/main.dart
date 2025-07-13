@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'pages/loading_page.dart';
+import 'services/audio_service.dart';
 
 // Custom button widget with shine effect
 class CustomButton extends StatefulWidget {
@@ -168,7 +169,12 @@ class _CustomButtonState extends State<CustomButton>
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize audio service
+  await AudioService().initialize();
+  
   runApp(const AurumApp());
 }
 
