@@ -7,6 +7,7 @@ class AudioService {
   AudioService._internal();
 
   AudioPlayer? _backgroundPlayer;
+  AudioPlayer? _effectsPlayer; // Dedicated player for sound effects
   bool _isPlaying = false;
   bool _isInitialized = false;
   bool _userInteracted = false;
@@ -14,12 +15,12 @@ class AudioService {
   // Initialize the audio service
   Future<void> initialize() async {
     if (_isInitialized) return;
-    
     _backgroundPlayer = AudioPlayer();
+    _effectsPlayer = AudioPlayer(); // Initialize effects player
     _isInitialized = true;
-    
-    // Set default volume initially
+    // Set default volumes
     await setVolume(0.6);
+    await setEffectsVolume(0.8);
   }
 
   // Start playing background music
@@ -119,10 +120,16 @@ class AudioService {
     }
   }
   
-  // Set volume
+  // Set music (background) volume
   Future<void> setVolume(double volume) async {
     if (!_isInitialized) return;
     await _backgroundPlayer?.setVolume(volume);
+  }
+
+  // Set sound effects volume
+  Future<void> setEffectsVolume(double volume) async {
+    if (!_isInitialized) return;
+    await _effectsPlayer?.setVolume(volume);
   }
   
   // Update volume from user settings
@@ -164,5 +171,11 @@ class AudioService {
     _backgroundPlayer = null;
     _isInitialized = false;
     _isPlaying = false;
+  }
+
+  // Play a sound effect asset using the effects player
+  Future<void> playEffect(String assetPath) async {
+    if (!_isInitialized) await initialize();
+    await _effectsPlayer?.play(AssetSource(assetPath));
   }
 } 

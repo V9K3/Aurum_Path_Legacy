@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../widgets/sound_button.dart';
 
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
@@ -59,12 +60,7 @@ class _GamePageState extends State<GamePage> {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.save, 
-              color: Colors.white,
-              size: isMobile ? 20 : 24,
-            ),
-            onPressed: () {
+            onPressed: () => SoundButton.playClickAndRun(() async {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text('Game saved!'),
@@ -72,17 +68,22 @@ class _GamePageState extends State<GamePage> {
                   margin: EdgeInsets.all(isMobile ? 16 : 8),
                 ),
               );
-            },
+            }),
+            icon: Icon(
+              Icons.save, 
+              color: Colors.white,
+              size: isMobile ? 20 : 24,
+            ),
           ),
           IconButton(
+            onPressed: () => SoundButton.playClickAndRun(() async {
+              Navigator.of(context).pop();
+            }),
             icon: Icon(
               Icons.menu, 
               color: Colors.white,
               size: isMobile ? 20 : 24,
             ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
           ),
         ],
       ),
@@ -244,7 +245,7 @@ class _GamePageState extends State<GamePage> {
                             width: isMobile ? double.infinity : null,
                             child: CustomButton(
                               text: 'Next Turn',
-                              onPressed: () {
+                              onPressed: () => SoundButton.playClickAndRun(() async {
                                 setState(() {
                                   _turn++;
                                   _cash += 1000;
@@ -257,7 +258,7 @@ class _GamePageState extends State<GamePage> {
                                     margin: EdgeInsets.all(isMobile ? 16 : 8),
                                   ),
                                 );
-                              },
+                              }),
                               isMobile: isMobile,
                             ),
                           ),

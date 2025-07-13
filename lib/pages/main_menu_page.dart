@@ -4,6 +4,7 @@ import 'game_page.dart';
 import 'settings_page.dart';
 import '../main.dart' show CustomButton;
 import '../services/audio_service.dart';
+import '../widgets/sound_button.dart';
 
 class MainMenuPage extends StatefulWidget {
   const MainMenuPage({super.key});
@@ -284,28 +285,28 @@ class _MainMenuPageState extends State<MainMenuPage>
                         CustomButton(
                           text: 'New Game',
                           icon: Icons.play_arrow,
-                          onPressed: _handleNewGame,
+                          onPressed: () => SoundButton.playClickAndRun(() async { _handleNewGame(); }),
                           isMobile: isMobile,
                         ),
                         SizedBox(height: isMobile ? 12 : 16),
                         CustomButton(
                           text: 'Load',
                           icon: Icons.folder_open,
-                          onPressed: _handleLoadGame,
+                          onPressed: () => SoundButton.playClickAndRun(() async { _handleLoadGame(); }),
                           isMobile: isMobile,
                         ),
                         SizedBox(height: isMobile ? 12 : 16),
                         CustomButton(
                           text: 'Tutorial',
                           icon: Icons.school,
-                          onPressed: _handleTutorial,
+                          onPressed: () => SoundButton.playClickAndRun(() async { _handleTutorial(); }),
                           isMobile: isMobile,
                         ),
                         SizedBox(height: isMobile ? 12 : 16),
                         CustomButton(
                           text: 'Settings',
                           icon: Icons.settings,
-                          onPressed: _handleSettings,
+                          onPressed: () => SoundButton.playClickAndRun(() async { _handleSettings(); }),
                           isMobile: isMobile,
                         ),
                         // Removed bottom SizedBox

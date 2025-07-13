@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/simple_user_service.dart';
 import '../services/audio_service.dart';
+import '../services/avatar_service.dart';
+import '../config/avatar_config.dart';
 import '../main.dart' show CustomButton;
+import '../widgets/sound_button.dart';
 
 // Extension to capitalize first letter
 extension StringExtension on String {
@@ -25,12 +28,10 @@ class _SettingsPageState extends State<SettingsPage> {
   
   // Character customization
   final TextEditingController _characterNameController = TextEditingController();
-  String _selectedAvatar = 'default';
-  List<String> _availableAvatars = [
-    'Maverick', 'Disruptor', 'Trailblazer', 'Pioneer', 'Planner', 'Hustler', 'Innovator', 'Strategist'
-  ];
+  String _selectedAvatar = 'Maverick';
 
   double _musicVolume = 0.6;
+  double _soundVolume = 0.8;
 
   @override
   void initState() {
@@ -49,20 +50,25 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final saves = await _userService.getUserSaves();
       final characterName = _userService.getSettingValue('characterName') ?? 'DemoPlayer';
-      final selectedAvatar = _userService.getSettingValue('selectedAvatar') ?? 'default';
+      final selectedAvatar = _userService.getSettingValue('selectedAvatar') ?? 'Maverick';
       final musicVolume = _userService.getSettingValue('musicVolume') ?? 0.6;
+      final soundVolume = _userService.getSettingValue('soundVolume') ?? 0.8;
       _characterNameController.text = characterName;
       _selectedAvatar = selectedAvatar;
       _musicVolume = musicVolume;
+      _soundVolume = soundVolume;
       
       // Apply the loaded volume to the audio service
-      _audioService.setVolume(musicVolume);
+      await _audioService.setVolume(musicVolume);
+      await _audioService.setEffectsVolume(soundVolume);
+      print('Settings: Initial volume set to ${(musicVolume * 100).round()}%');
       
       setState(() {
         _userSaves = saves;
         _isLoading = false;
       });
     } catch (e) {
+      print('Settings: Error loading user data: $e');
       setState(() { _isLoading = false; });
     }
   }
@@ -71,188 +77,236 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final isMobile = screenSize.width < 600;
-
+    final isSmallMobile = screenSize.width < 400;
+    
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.settings,
-              color: const Color(0xFFFFD700),
-              size: isMobile ? 24 : 28,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'Settings',
-              style: TextStyle(
-                color: Color(0xFFFFD700),
-                fontWeight: FontWeight.bold,
+      body: _isLoading
+          ? Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/backgrounds/MainBG.png'),
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFFFD700)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/backgrounds/MainBG.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
-          ),
-          child: SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFFFFD700),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // User Info Section
-                        _buildSection(
-                          'User Information',
-                          Icons.person,
-                          [
-                                                         _buildInfoRow('Username', _userService.currentUsername),
-                             _buildInfoRow('User ID', _userService.currentUserId.toString()),
-                             _buildInfoRow('Login Status', _userService.isLoggedIn ? 'Logged In' : 'Not Logged In'),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Character Customization Section
-                        _buildSection(
-                          'Character Customization',
-                          Icons.person,
-                          [
-                            _buildCharacterNameRow(),
-                            _buildAvatarSelectionRow(),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Settings Section
-                        _buildSection(
-                          'Game Settings',
-                          Icons.settings,
-                          [
-                            _buildSettingRow(
-                              'Sound Effects',
-                              _userService.isSettingEnabled('sound'),
-                              (value) => _userService.updateSetting('soundEnabled', value),
-                            ),
-                            _buildSettingRow(
-                              'Auto Save',
-                              _userService.isSettingEnabled('autoSave'),
-                              (value) => _userService.updateSetting('autoSaveEnabled', value),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Volume Settings
-                        _buildSection(
-                          'Volume Settings',
-                          Icons.volume_up,
-                          [
-                            _buildSliderRow(
-                              'Sound Volume',
-                              _userService.getSettingValue('soundVolume') ?? 0.8,
-                              (value) => _userService.updateSetting('soundVolume', value),
-                            ),
-                            _buildSliderRow(
-                              'Music Volume',
-                              _musicVolume,
-                              (value) {
-                                setState(() { _musicVolume = value; });
-                                _userService.updateSetting('musicVolume', value);
-                                _audioService.setVolume(value);
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Save Files Section
-                        _buildSection(
-                          'Save Files (${_userSaves.length})',
-                          Icons.save,
-                          _userSaves.isEmpty
-                              ? [
-                                  const Padding(
-                                    padding: EdgeInsets.all(16.0),
-                                    child: Text(
-                                      'No save files found. Start a new game to create saves!',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontStyle: FontStyle.italic,
-                                      ),
-                                    ),
-                                  ),
-                                ]
-                              : _userSaves.map((save) => _buildSaveFileRow(save)).toList(),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Database Actions
-                        _buildSection(
-                          'Database Actions',
-                          Icons.storage,
-                          [
-                            _buildActionRow(
-                              'Refresh Data',
-                              Icons.refresh,
-                              () => _loadUserData(),
-                            ),
-                            _buildActionRow(
-                              'Clear All Data',
-                              Icons.delete_forever,
-                              () => _showClearDataDialog(),
-                              isDestructive: true,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Back Button
-                        Center(
-                          child: CustomButton(
-                            text: 'Back to Menu',
-                            icon: Icons.arrow_back,
-                            onPressed: () => Navigator.of(context).pop(),
-                            isMobile: isMobile,
-                          ),
-                        ),
-                      ],
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFFFD700),
+                  ),
+                ),
+              ),
+            )
+          : isMobile
+              ? Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/backgrounds/MainBG.png'),
+                      fit: BoxFit.cover,
                     ),
                   ),
+                  child: SafeArea(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                      ),
+                      child: _buildContent(isMobile, isSmallMobile),
+                    ),
+                  ),
+                )
+              : Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: const Color(0xFFF1F5D8),
+                  child: Center(
+                    child: Container(
+                      width: 600, // Mobile width for consistent image size
+                      height: double.infinity,
+                      decoration: const BoxDecoration(
+                        image: DecorationImage(
+                          image: AssetImage('assets/images/backgrounds/MainBG.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                        ),
+                        child: _buildContent(isMobile, isSmallMobile),
+                      ),
+                    ),
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildContent(bool isMobile, bool isSmallMobile) {
+    return Column(
+      children: [
+        // Header
+        Padding(
+          padding: EdgeInsets.all(isMobile ? 16.0 : 20.0),
+          child: Row(
+            children: [
+              IconButton(
+                onPressed: () => SoundButton.playClickAndRun(() async {
+                  Navigator.of(context).pop();
+                }),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Settings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isMobile ? 24 : 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
-      ),
+        // Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // User Info Section
+                _buildSection(
+                  'User Information',
+                  Icons.person,
+                  [
+                    _buildInfoRow('Gamer ID', _userService.currentUserId.toString()),
+                    _buildInfoRow('Login Status', _userService.isLoggedIn ? 'Logged In' : 'Not Logged In'),
+                  ],
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+
+                // Character Customization Section
+                _buildSection(
+                  'Character Customization',
+                  Icons.person,
+                  [
+                    _buildCharacterNameRow(),
+                    _buildAvatarSelectionRow(),
+                  ],
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+
+                // Settings Section
+                _buildSection(
+                  'Game Settings',
+                  Icons.settings,
+                  [
+                    _buildSettingRow(
+                      'Sound Effects',
+                      _userService.isSettingEnabled('sound'),
+                      (value) => _userService.updateSetting('soundEnabled', value),
+                    ),
+                    _buildSettingRow(
+                      'Auto Save',
+                      _userService.isSettingEnabled('autoSave'),
+                      (value) => _userService.updateSetting('autoSaveEnabled', value),
+                    ),
+                  ],
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+
+                // Volume Settings
+                _buildSection(
+                  'Volume Settings',
+                  Icons.volume_up,
+                  [
+                    _buildSliderRow(
+                      'Sound Volume',
+                      _soundVolume,
+                      (value) async {
+                        print('Settings: Sound volume changed to ${(value * 100).round()}%');
+                        setState(() { _soundVolume = value; });
+                        await _userService.updateSetting('soundVolume', value);
+                        await _audioService.setEffectsVolume(value);
+                        print('Settings: Effects volume update completed');
+                      },
+                    ),
+                    _buildSliderRow(
+                      'Music Volume',
+                      _musicVolume,
+                      (value) async {
+                        print('Settings: Music volume changed to ${(value * 100).round()}%');
+                        setState(() { _musicVolume = value; });
+                        await _userService.updateSetting('musicVolume', value);
+                        await _audioService.setVolume(value);
+                        print('Settings: Volume update completed');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Test button for sound effect volume
+                    ElevatedButton(
+                      onPressed: () => SoundButton.playClickAndRun(() async {
+                        // This file must exist and be listed in pubspec.yaml
+                        await AudioService().playEffect('music/play/click.mp3');
+                      }),
+                      child: const Text('Test Sound Effect'),
+                    ),
+                  ],
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+
+                // Save Files Section
+                _buildSection(
+                  'Save Files (${_userSaves.length})',
+                  Icons.save,
+                  _userSaves.isEmpty
+                      ? [
+                          const Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: Text(
+                              'No save files found. Start a new game to create saves!',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ]
+                      : _userSaves.map((save) => _buildSaveFileRow(save)).toList(),
+                ),
+                SizedBox(height: isMobile ? 24 : 32),
+
+                // Back Button
+                Center(
+                  child: CustomButton(
+                    text: 'Back to Menu',
+                    icon: Icons.arrow_back,
+                    onPressed: () => SoundButton.playClickAndRun(() async {
+                      Navigator.of(context).pop();
+                    }),
+                    isMobile: isMobile,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSection(String title, IconData icon, List<Widget> children) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: const Color(0xFF332d56).withOpacity(0.6),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white30.withOpacity(0.2),
         ),
       ),
       child: Column(
@@ -290,7 +344,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white70,
+              color: Colors.white,
               fontSize: 14,
             ),
           ),
@@ -350,7 +404,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Text(
                 '${(value * 100).round()}%',
                 style: const TextStyle(
-                  color: Color(0xFFFFD700),
+                  color: Colors.white70,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -459,61 +513,60 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           const Text('Select Avatar', style: TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 80,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _availableAvatars.length,
-              itemBuilder: (context, index) {
-                final avatar = _availableAvatars[index];
-                final isSelected = _selectedAvatar == avatar;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() { _selectedAvatar = avatar; });
-                    _userService.updateSetting('selectedAvatar', avatar);
-                  },
-                  child: Container(
-                    width: 60,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFFFFD700).withOpacity(0.3) : Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected ? const Color(0xFFFFD700) : Colors.white.withOpacity(0.3),
-                        width: isSelected ? 2 : 1,
+          // Calculate number of rows needed
+          ...List.generate(
+            (AvatarConfig.availableAvatars.length / AvatarConfig.maxAvatarsPerRow).ceil(),
+            (rowIndex) {
+              final startIndex = rowIndex * AvatarConfig.maxAvatarsPerRow;
+              final endIndex = (startIndex + AvatarConfig.maxAvatarsPerRow).clamp(0, AvatarConfig.availableAvatars.length);
+              final rowAvatars = AvatarConfig.availableAvatars.sublist(startIndex, endIndex);
+              
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: rowAvatars.map((avatar) {
+                    final isSelected = _selectedAvatar == avatar;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() { _selectedAvatar = avatar; });
+                        _userService.updateSetting('selectedAvatar', avatar);
+                      },
+                      child: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: isSelected ? const Color(0xFF50562D).withOpacity(0.8) : const Color(0xFF332d56).withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? const Color(0xFF50562D).withOpacity(0.8) : const Color(0xFF332d56).withOpacity(0.9),
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AvatarService.getAvatarWidget(avatar, size: 20),
+                            const SizedBox(height: 2),
+                            Text(
+                              avatar.capitalize(), 
+                              style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.w500)
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(_getAvatarIcon(avatar), color: isSelected ? const Color(0xFFFFD700) : Colors.white, size: 24),
-                        const SizedBox(height: 4),
-                        Text(avatar.capitalize(), style: TextStyle(color: isSelected ? const Color(0xFFFFD700) : Colors.white70, fontSize: 10, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  IconData _getAvatarIcon(String avatar) {
-    switch (avatar) {
-      case 'Maverick': return Icons.flight_takeoff;
-      case 'Disruptor': return Icons.flash_on;
-      case 'Trailblazer': return Icons.emoji_flags;
-      case 'Pioneer': return Icons.landscape;
-      case 'Planner': return Icons.event_note;
-      case 'Hustler': return Icons.directions_run;
-      case 'Innovator': return Icons.lightbulb;
-      case 'Strategist': return Icons.account_tree;
-      default: return Icons.person;
-    }
-  }
+
 
   Widget _buildActionRow(String label, IconData icon, VoidCallback onPressed, {bool isDestructive = false}) {
     return Padding(

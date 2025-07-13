@@ -220,7 +220,7 @@ class _LoadingPageState extends State<LoadingPage>
                                   'From Seed Capital to Financial Empire',
                                   style: TextStyle(
                                     fontSize: isMobile ? 12 : 15,
-                                    color: const Color(0xFFFFD700),
+                                    color: Colors.white70,
                                     height: 1.4,
                                     fontWeight: FontWeight.w300,
                                     shadows: const [
